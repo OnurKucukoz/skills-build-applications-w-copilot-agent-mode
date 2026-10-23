@@ -28,15 +28,13 @@ OctoFit Tracker is a three-tier application for a school fitness program. The st
 
 ## Implementation decisions
 
-Record your plan here before editing code.
-
-- Presentation tier decision:
-- Logic tier decision:
-- Data tier decision:
-- Activity tracking approach:
-- Team management approach:
-- Leaderboard approach:
-- Workout suggestions approach:
+- Presentation tier decision: Keep React components responsible for rendering only; use the shared `getJson` client with relative `/api` paths, and expose loading (`role="status"`), empty, success, and failure (`role="alert"`) states. The current screens are read-only and use the seeded Mona account for workout suggestions.
+- Logic tier decision: Keep Express route handlers as thin wrappers around explicit TypeScript service functions. Validate request shapes and ObjectId syntax before querying Mongoose, return deliberate 4xx errors for invalid or missing records, and keep the API unauthenticated for this exercise.
+- Data tier decision: Use Mongoose references for users, teams, and activities; require user name/email/fitness goal, team name/mascot, and all activity/workout contract fields. Default team members to an empty array, require positive activity/workout minutes, and preserve unrelated records when idempotently seeding demo data.
+- Activity tracking approach: `GET /api/activities` returns persisted records. `POST /api/activities` accepts `userId`, `teamId`, `type`, and positive `minutes`; verify both referenced records exist, store them as `user` and `team`, calculate `points` as the submitted minutes, and set `occurredAt` when creating the record. Reject malformed IDs or missing references with 4xx responses rather than Mongoose cast errors.
+- Team management approach: `GET /api/teams` lists teams; `POST /api/teams` requires non-empty `name` and `mascot`, accepts an optional array of existing user IDs as `members`, defaults omitted members to `[]`, and returns `400` for invalid input.
+- Leaderboard approach: Aggregate activity `points` by team in MongoDB, merge the totals with all teams so teams without activity score zero, sort by descending total (team name breaks ties deterministically), and assign 1-based ranks.
+- Workout suggestions approach: Look up the user by normalized email from `GET /api/workouts/suggestions/:userEmail`; prefer workouts whose `focus` matches the user's fitness goal, otherwise match the most recent activity type. Include a human-readable `reason` for each suggestion and return `404` when the email has no matching user.
 
 ## Test plan
 
